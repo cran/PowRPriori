@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Power Analysis with PowRPriori: A Complete Workflow with Different Examples</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Power Analysis with PowRPriori: A Complete
+Workflow with Different Examples</h1>
+
+
+
+<div id="introduction" class="section level2">
+<h2>Introduction</h2>
+<p>Welcome to <code>PowRPriori</code>! A priori power analysis is a
+critical step in designing robust and efficient studies. This package is
+designed to make power analysis for complex linear models (LMs, LMMs,
+GLMs, and GLMMs) intuitive, user-friendly and accessible. It ensures
+robust estimations by using Monte-Carlo-style data simulation as a
+foundation for the power analysis. One of the main goals of the package
+is to provide a framework for a priori power analyses which does not
+necessitate a deep understanding of the underlying statistics or ins and
+outs of the model specifications. Ideally, we can focus on your research
+design and expected effect sizes with the package doing the rest for us
+without overly complicated function parameters.</p>
+<p>This vignette will guide us through the entire workflow of a power
+analysis using a realistic example. We will cover: 1. Defining a study
+design. 2. Specifying expected effects based on theory. 3. Running the
+power simulation. 4. Interpreting and visualizing the results.</p>
+<p>Finally, we will show brief examples of how to adapt the workflow for
+other common study designs.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># First, let&#39;s load PowRPriori and other helpful packages</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(PowRPriori)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">library</span>(tidyr) <span class="co"># For creating the means table</span></span></code></pre></div>
+</div>
+<div id="a-complete-example-a-2x2-mixed-design" class="section level2">
+<h2>A Complete Example: A 2x2 Mixed Design</h2>
+<p>Let’s imagine a common research scenario. We want to test a new
+cognitive training program.</p>
+<p><strong>Research Question:</strong> Does our new training program
+(<code>group</code>: Treatment vs. Control) improve memory scores from a
+pre-test to a post-test (<code>time</code>) more than in a control
+group?</p>
+<p>This is a classic 2x2 mixed design, with <code>group</code> as a
+between-subject factor and <code>time</code> as a within-subject factor.
+Since <code>time</code> is a within-subject factor, which can thus be
+seen as “nested” within each individual measured, we can elegantly
+analyze such a research design using a linear mixed effects model. The
+important questions for our power analysis are, what does our study
+design look like, what are the effect sizes we can realistically expect
+(based on the existing literature) and what are reasonable estimates for
+the random effects structure?</p>
+<div id="step-1-define-the-study-design" class="section level3">
+<h3>Step 1: Define the Study Design</h3>
+<p>First, we translate our study design into a
+<code>PowRPriori_design</code> object. We specify the name of our
+subject ID (<code>subject</code>), our between-subject factors, and our
+within-subject factors. Note that the <code>id</code> parameter does not
+necessarily have to represent a person but can be any analysis unit on
+the lowest level of your mixed effects design (e.g. a plot in a
+garden).</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>my_design <span class="ot">&lt;-</span> <span class="fu">define_design</span>(</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  <span class="at">id =</span> <span class="st">&quot;subject&quot;</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  <span class="at">between =</span> <span class="fu">list</span>(<span class="at">group =</span> <span class="fu">c</span>(<span class="st">&quot;Control&quot;</span>, <span class="st">&quot;Treatment&quot;</span>)),</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="at">within =</span> <span class="fu">list</span>(<span class="at">time =</span> <span class="fu">c</span>(<span class="st">&quot;pre&quot;</span>, <span class="st">&quot;post&quot;</span>))</span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="step-2-define-the-statistical-model" class="section level3">
+<h3>Step 2: Define the Statistical Model</h3>
+<p>Here we need to translate our research question into a statistical
+model which can be tested. This package uses lme4-style formula to do
+that. Our research question implies an interaction effect, since we want
+to know if the effect of <code>time</code> is different between the
+Control and the Treatment groups. We will also include a random
+intercept for <code>subject</code> to account for the fact that
+measurements from the same person are correlated (representing the
+“nesting” of the data).</p>
+<p>Our lme4-style model formula is:
+<code>score ~ group * time + (1 | subject)</code></p>
+<p>On the left hand side of the tilde is our outcome variable and on the
+right hand side our combination of fixed (<code>group * time</code>) and
+random (<code>(1 | subject)</code>) effects.</p>
+</div>
+<div id="step-3-specify-the-hypothesized-effects" class="section level3">
+<h3>Step 3: Specify the Hypothesized Effects</h3>
+<p>This is the most critical part of our power analysis. We need to
+define the effect sizes which we expect in our study. Ideally, there is
+existing literature or an underlying theory that guides us here. We
+could, however, also simulate however many effect sizes we like using
+the package. In fact, varying the effect sizes can generally be a good
+idea to get more robust estimates. If we wanted to, we could directly
+define the fixed effects. However, to correctly simulate the data and,
+more importantly, fit the model, the names of the coefficients need to
+be specified such as the model fitting engine (<code>lme4</code> in the
+case of this package) expects them. To make this process easier,
+<code>PowRPriori</code> gives we two options.</p>
+<p>First, if we already know the values of the coefficients, we can use
+the <code>get_fixed_effects_structure</code> helper function to let
+<code>PowRPriori</code> automatically print a ready-to-use code snippet
+to the console containing all correctly named coefficients and which is
+structured so that <code>PowRPriori</code> understands it. The values
+are left as placeholders (<code>...</code>), so all that is left to do
+is fill them. Second, if we do not know the values of the coefficients,
+<code>PowRPRiori</code> also allows us to think in terms of expected
+outcomes and calculate the necessary coefficients for us. Let’s go
+through both scenarios.</p>
+<div id="scenario-a-we-do-not-know-the-values-of-the-coefficients" class="section level5">
+<h5>Scenario A: We do not know the values of the coefficients</h5>
+<p>We will start with the case where we do not know the values of the
+coefficients, but can estimate reasonable values for the mean outcome
+scores in each condition.</p>
+<p>Let’s assume the memory score is on a 100-point scale. We hypothesize
+the following mean scores for each condition:</p>
+<p>-The <strong>Control</strong> group starts at 50 and improves
+slightly to 52 (a small practice effect).</p>
+<p>-The <strong>Treatment</strong> group also starts at 50 but improves
+significantly to 60.</p>
+<p>We create a data frame with these expected means:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>expected_means <span class="ot">&lt;-</span> tidyr<span class="sc">::</span><span class="fu">expand_grid</span>(</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>  <span class="at">group =</span> <span class="fu">c</span>(<span class="st">&quot;Control&quot;</span>, <span class="st">&quot;Treatment&quot;</span>),</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>  <span class="at">time =</span> <span class="fu">c</span>(<span class="st">&quot;pre&quot;</span>, <span class="st">&quot;post&quot;</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co"># Assign the means based on our hypothesis</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>expected_means<span class="sc">$</span>mean_score <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">50</span>, <span class="dv">52</span>, <span class="dv">50</span>, <span class="dv">60</span>)</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">kable</span>(expected_means, <span class="at">caption =</span> <span class="st">&quot;Expected Mean Scores for Each Condition&quot;</span>)</span></code></pre></div>
+<table>
+<caption>Expected Mean Scores for Each Condition</caption>
+<thead>
+<tr class="header">
+<th align="left">group</th>
+<th align="left">time</th>
+<th align="right">mean_score</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Control</td>
+<td align="left">pre</td>
+<td align="right">50</td>
+</tr>
+<tr class="even">
+<td align="left">Control</td>
+<td align="left">post</td>
+<td align="right">52</td>
+</tr>
+<tr class="odd">
+<td align="left">Treatment</td>
+<td align="left">pre</td>
+<td align="right">50</td>
+</tr>
+<tr class="even">
+<td align="left">Treatment</td>
+<td align="left">post</td>
+<td align="right">60</td>
+</tr>
+</tbody>
+</table>
+<p>In more complex examples, the sequence of the means might not be as
+straightforward as in this case. Then we can simply look at the
+resulting dataframe created by <code>expand_grid</code> to see the
+generated sequence of conditions.</p>
+<p>Now that we have our dataframe containing the expected mean outcomes,
+we use the helper function
+<code>fixed_effects_from_average_outcome()</code> to translate these
+intuitive means into the regression coefficients our model needs.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>my_fixed_effects <span class="ot">&lt;-</span> <span class="fu">fixed_effects_from_average_outcome</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="at">formula =</span> score <span class="sc">~</span> group <span class="sc">*</span> time,</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">outcome =</span> expected_means</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>)</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#Note the naming of the coefficients is exactly as `lme4` expects them to be. Do not change these names!</span></span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="fu">print</span>(my_fixed_effects)</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co">#&gt; $`(Intercept)`</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="co">#&gt; [1] 50</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co">#&gt; $groupTreatment</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co">#&gt; [1] 0</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co">#&gt; $timepost</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="co">#&gt; [1] 2</span></span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="co">#&gt; $`groupTreatment:timepost`</span></span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="co">#&gt; [1] 8</span></span></code></pre></div>
+</div>
+<div id="scenario-b-we-already-know-the-values-of-the-coefficients" class="section level5">
+<h5>Scenario B: We already know the values of the coefficients</h5>
+<p>Let us now look at a scenario where we already know the values for
+the coefficient. We will simply assume that we already knew the values
+produced by the <code>fixed_effects_from_average_outcome</code> function
+before. We will also use <code>my_design</code> here, which we created
+above. In combination with supplying the formula, the process of
+obtaining the correct structure for the fixed effects becomes rather
+simple.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="fu">get_fixed_effects_structure</span>(<span class="at">formula =</span> score <span class="sc">~</span> group <span class="sc">*</span> time <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> subject), <span class="at">design =</span> my_design)</span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="co">#&gt; Copy the following code and fill the placeholders (...) with your desired coefficients:</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co">#&gt; fixed_effects &lt;- list(</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a><span class="co">#&gt;   `(Intercept)` = ...,</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a><span class="co">#&gt;   groupTreatment = ...,</span></span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a><span class="co">#&gt;   timepost = ...,</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a><span class="co">#&gt;   `groupTreatment:timepost` = ...</span></span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a><span class="co">#&gt; )</span></span></code></pre></div>
+<p>Now we can fill in the values:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>my_fixed_effects <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>   <span class="st">`</span><span class="at">(Intercept)</span><span class="st">`</span> <span class="ot">=</span> <span class="dv">50</span>,</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>   <span class="at">groupTreatment =</span> <span class="dv">0</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>   <span class="at">timepost =</span> <span class="dv">2</span>,</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>   <span class="st">`</span><span class="at">groupTreatment:timepost</span><span class="st">`</span> <span class="ot">=</span> <span class="dv">8</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+</div>
+<div id="step-4-specify-the-random-effects" class="section level3">
+<h3>Step 4: Specify the Random Effects</h3>
+<p>We also need to define the values of the random effects structure
+(i.e. the variance components). Again, ideally, we have some sort of
+guide for the values of these so that we can assign realistic values.
+The random effects can influence the model fitting process considerably
+when using mixed effects model, especially in more complex scenarios.
+This means that we’ll need to strike a balance between realistic values
+and tweaking it so that the model can be fit. Fortunately,
+<code>PowRPriori</code> lets us know if the model fitting process is
+problematic during simulation.</p>
+<p>For now, let’s assume the standard deviation of our subjects’
+baseline scores (the random intercept) is 8 points, and the residual
+standard deviation (random noise) unexplained by our model is 12
+points.</p>
+<p>We can use <code>get_random_effects_structure()</code> to get a
+template very similar to what <code>get_fixed_effects_structure()</code>
+provides.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># This helps us get the correct names</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a><span class="fu">get_random_effects_structure</span>(score <span class="sc">~</span> group <span class="sc">*</span> time <span class="sc">+</span> (<span class="dv">1</span><span class="sc">|</span>subject), my_design)</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a><span class="co">#&gt; Copy the following structure and fill the placeholders (...) with your random effects values:</span></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co">#&gt; random_effects &lt;- list(</span></span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a><span class="co">#&gt;   subject = list(</span></span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a><span class="co">#&gt;     `(Intercept)` = ...</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a><span class="co">#&gt;   ),</span></span>
+<span id="cb7-9"><a href="#cb7-9" tabindex="-1"></a><span class="co">#&gt;   sd_resid = ...</span></span>
+<span id="cb7-10"><a href="#cb7-10" tabindex="-1"></a><span class="co">#&gt; )</span></span></code></pre></div>
+<p>Now we can again fill in the values:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>my_random_effects <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>  <span class="at">subject =</span> <span class="fu">list</span>(</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>    <span class="st">`</span><span class="at">(Intercept)</span><span class="st">`</span> <span class="ot">=</span> <span class="dv">8</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>  ),</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>  <span class="at">sd_resid =</span> <span class="dv">12</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="step-5-run-the-simulation" class="section level3">
+<h3>Step 5: Run the Simulation</h3>
+<p>We now have all the ingredients to run our power simulation. We want
+to find the sample size needed to achieve 80% power at an alpha level of
+5% for our key hypothesis: the <code>groupTreatment:timepost</code>
+interaction. We’ll start with N=30 and increase in steps of 10. Note
+that neither the 80% power nor the 5% alpha level are set in stone.
+Depending on the context, we might also want to adjust these.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># </span><span class="al">NOTE</span><span class="co">: This function can take a few minutes to run.</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="co"># For a real analysis, n_sims should be 1000 or higher (default value is 2000 simulations).</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="co"># We use a low n_sims here for a quick example.</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>power_results <span class="ot">&lt;-</span> <span class="fu">power_sim</span>(</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>  <span class="at">formula =</span> score <span class="sc">~</span> group <span class="sc">*</span> time <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> subject),</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a>  <span class="at">design =</span> my_design,</span>
+<span id="cb9-8"><a href="#cb9-8" tabindex="-1"></a>  <span class="at">fixed_effects =</span> my_fixed_effects,</span>
+<span id="cb9-9"><a href="#cb9-9" tabindex="-1"></a>  <span class="at">random_effects =</span> my_random_effects,</span>
+<span id="cb9-10"><a href="#cb9-10" tabindex="-1"></a>  <span class="at">test_parameter =</span> <span class="st">&quot;groupTreatment:timepost&quot;</span>,</span>
+<span id="cb9-11"><a href="#cb9-11" tabindex="-1"></a>  <span class="at">n_start =</span> <span class="dv">30</span>,</span>
+<span id="cb9-12"><a href="#cb9-12" tabindex="-1"></a>  <span class="at">n_increment =</span> <span class="dv">10</span>,</span>
+<span id="cb9-13"><a href="#cb9-13" tabindex="-1"></a>  <span class="at">n_sims =</span> <span class="dv">200</span>, <span class="co"># Use &gt;= 1000 for real analysis</span></span>
+<span id="cb9-14"><a href="#cb9-14" tabindex="-1"></a>  <span class="at">power_crit =</span> <span class="fl">0.80</span>,</span>
+<span id="cb9-15"><a href="#cb9-15" tabindex="-1"></a>  <span class="at">alpha =</span> <span class="fl">0.05</span>,</span>
+<span id="cb9-16"><a href="#cb9-16" tabindex="-1"></a>  <span class="at">parallel_plan =</span> <span class="st">&quot;sequential&quot;</span></span>
+<span id="cb9-17"><a href="#cb9-17" tabindex="-1"></a>)</span></code></pre></div>
+</div>
+<div id="step-6-interpret-and-visualize-the-results" class="section level3">
+<h3>Step 6: Interpret and Visualize the Results</h3>
+<p>After the simulation is complete, we can inspect the results
+object.</p>
+<div id="the-summary-table" class="section level4">
+<h4>The Summary Table</h4>
+<p>The <code>summary()</code> function provides a detailed overview,
+including the power table and a check of the parameter recovery (which
+confirms our simulation ran as expected).</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">summary</span>(power_results)</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="co">#&gt; --- Power Simulation Results ---</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co">#&gt; Family: gaussianPower Table:</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co">#&gt; Formula: score ~ group * time + (1 | subject) </span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="co">#&gt;    subject power_groupTreatment.timepost ci_lower_groupTreatment.timepost</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co">#&gt; 1       30                         0.230                            0.172</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="co">#&gt; 2       40                         0.315                            0.251</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="co">#&gt; 3       50                         0.425                            0.356</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="co">#&gt; 4       60                         0.460                            0.391</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co">#&gt; 5       70                         0.500                            0.431</span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="co">#&gt; 6       80                         0.570                            0.501</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="co">#&gt; 7       90                         0.595                            0.527</span></span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="co">#&gt; 8      100                         0.605                            0.537</span></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co">#&gt; 9      110                         0.725                            0.663</span></span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a><span class="co">#&gt; 10     120                         0.735                            0.674</span></span>
+<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a><span class="co">#&gt; 11     130                         0.725                            0.663</span></span>
+<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a><span class="co">#&gt; 12     140                         0.815                            0.761</span></span>
+<span id="cb10-20"><a href="#cb10-20" tabindex="-1"></a><span class="co">#&gt;    ci_upper_groupTreatment.timepost n_singular n_convergence n_identifiable</span></span>
+<span id="cb10-21"><a href="#cb10-21" tabindex="-1"></a><span class="co">#&gt; 1                             0.288          8             0              0</span></span>
+<span id="cb10-22"><a href="#cb10-22" tabindex="-1"></a><span class="co">#&gt; 2                             0.379          5             0              0</span></span>
+<span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a><span class="co">#&gt; 3                             0.494          2             0              0</span></span>
+<span id="cb10-24"><a href="#cb10-24" tabindex="-1"></a><span class="co">#&gt; 4                             0.529          2             0              0</span></span>
+<span id="cb10-25"><a href="#cb10-25" tabindex="-1"></a><span class="co">#&gt; 5                             0.569          0             0              0</span></span>
+<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a><span class="co">#&gt; 6                             0.639          0             0              0</span></span>
+<span id="cb10-27"><a href="#cb10-27" tabindex="-1"></a><span class="co">#&gt; 7                             0.663          0             0              0</span></span>
+<span id="cb10-28"><a href="#cb10-28" tabindex="-1"></a><span class="co">#&gt; 8                             0.673          0             0              0</span></span>
+<span id="cb10-29"><a href="#cb10-29" tabindex="-1"></a><span class="co">#&gt; 9                             0.787          0             0              0</span></span>
+<span id="cb10-30"><a href="#cb10-30" tabindex="-1"></a><span class="co">#&gt; 10                            0.796          0             0              0</span></span>
+<span id="cb10-31"><a href="#cb10-31" tabindex="-1"></a><span class="co">#&gt; 11                            0.787          0             0              0</span></span>
+<span id="cb10-32"><a href="#cb10-32" tabindex="-1"></a><span class="co">#&gt; 12                            0.869          0             0              0</span></span>
+<span id="cb10-33"><a href="#cb10-33" tabindex="-1"></a><span class="co">#&gt;    n_other_warnings</span></span>
+<span id="cb10-34"><a href="#cb10-34" tabindex="-1"></a><span class="co">#&gt; 1                 0</span></span>
+<span id="cb10-35"><a href="#cb10-35" tabindex="-1"></a><span class="co">#&gt; 2                 0</span></span>
+<span id="cb10-36"><a href="#cb10-36" tabindex="-1"></a><span class="co">#&gt; 3                 0</span></span>
+<span id="cb10-37"><a href="#cb10-37" tabindex="-1"></a><span class="co">#&gt; 4                 0</span></span>
+<span id="cb10-38"><a href="#cb10-38" tabindex="-1"></a><span class="co">#&gt; 5                 0</span></span>
+<span id="cb10-39"><a href="#cb10-39" tabindex="-1"></a><span class="co">#&gt; 6                 0</span></span>
+<span id="cb10-40"><a href="#cb10-40" tabindex="-1"></a><span class="co">#&gt; 7                 0</span></span>
+<span id="cb10-41"><a href="#cb10-41" tabindex="-1"></a><span class="co">#&gt; 8                 0</span></span>
+<span id="cb10-42"><a href="#cb10-42" tabindex="-1"></a><span class="co">#&gt; 9                 0</span></span>
+<span id="cb10-43"><a href="#cb10-43" tabindex="-1"></a><span class="co">#&gt; 10                0</span></span>
+<span id="cb10-44"><a href="#cb10-44" tabindex="-1"></a><span class="co">#&gt; 11                0</span></span>
+<span id="cb10-45"><a href="#cb10-45" tabindex="-1"></a><span class="co">#&gt; 12                0</span></span>
+<span id="cb10-46"><a href="#cb10-46" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-47"><a href="#cb10-47" tabindex="-1"></a><span class="co">#&gt; --- Parameter Recovery (Fixed Effects) ---</span></span>
+<span id="cb10-48"><a href="#cb10-48" tabindex="-1"></a><span class="co">#&gt;                         True_Value Avg_Estimated   Bias</span></span>
+<span id="cb10-49"><a href="#cb10-49" tabindex="-1"></a><span class="co">#&gt; Intercept                       50        50.085  0.085</span></span>
+<span id="cb10-50"><a href="#cb10-50" tabindex="-1"></a><span class="co">#&gt; groupTreatment                   0        -0.420 -0.420</span></span>
+<span id="cb10-51"><a href="#cb10-51" tabindex="-1"></a><span class="co">#&gt; timepost                         2         1.777 -0.223</span></span>
+<span id="cb10-52"><a href="#cb10-52" tabindex="-1"></a><span class="co">#&gt; groupTreatment:timepost          8         8.436  0.436</span></span>
+<span id="cb10-53"><a href="#cb10-53" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-54"><a href="#cb10-54" tabindex="-1"></a><span class="co">#&gt; --- Parameter Recovery (Random Effects) ---</span></span>
+<span id="cb10-55"><a href="#cb10-55" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-56"><a href="#cb10-56" tabindex="-1"></a><span class="co">#&gt; Standard Deviations &amp; Correlations:</span></span>
+<span id="cb10-57"><a href="#cb10-57" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-58"><a href="#cb10-58" tabindex="-1"></a><span class="co">#&gt; Group: subject</span></span>
+<span id="cb10-59"><a href="#cb10-59" tabindex="-1"></a><span class="co">#&gt;   Parameter True_Value Avg_Estimated   Bias</span></span>
+<span id="cb10-60"><a href="#cb10-60" tabindex="-1"></a><span class="co">#&gt; 1 Intercept          8         7.915 -0.085</span></span>
+<span id="cb10-61"><a href="#cb10-61" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-62"><a href="#cb10-62" tabindex="-1"></a><span class="co">#&gt; Group: sd_resid</span></span>
+<span id="cb10-63"><a href="#cb10-63" tabindex="-1"></a><span class="co">#&gt;   Parameter True_Value Avg_Estimated  Bias</span></span>
+<span id="cb10-64"><a href="#cb10-64" tabindex="-1"></a><span class="co">#&gt; 1  sd_resid         12        12.049 0.049</span></span>
+<span id="cb10-65"><a href="#cb10-65" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-66"><a href="#cb10-66" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-67"><a href="#cb10-67" tabindex="-1"></a><span class="co">#&gt; Intra-Class Correlations (ICC):</span></span>
+<span id="cb10-68"><a href="#cb10-68" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-69"><a href="#cb10-69" tabindex="-1"></a><span class="co">#&gt;     Level Implied_True_ICC Avg_Estimated_ICC   Bias</span></span>
+<span id="cb10-70"><a href="#cb10-70" tabindex="-1"></a><span class="co">#&gt; 1 subject            0.308             0.301 -0.006</span></span>
+<span id="cb10-71"><a href="#cb10-71" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-72"><a href="#cb10-72" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb10-73"><a href="#cb10-73" tabindex="-1"></a><span class="co">#&gt; --- Note ---</span></span>
+<span id="cb10-74"><a href="#cb10-74" tabindex="-1"></a><span class="co">#&gt; Small bias values indicate that the simulation correctly</span></span>
+<span id="cb10-75"><a href="#cb10-75" tabindex="-1"></a><span class="co">#&gt; estimated the a-priori specified effect sizes.</span></span></code></pre></div>
+<p>From this table, we can see that we need approximately <strong>N=140
+subjects</strong> to reach our desired 80% power at an alpha level of
+5%. Also, we can see that our model had some singular fits, especially
+when the sample size was smaller. Although sometimes singular fits can
+happen, if they happen often, this can mean that our model
+specifications might be problematic. Right now, we do not need to delve
+further into diagnostics, but investigating our random effects
+parameters would probably be useful here.</p>
+</div>
+<div id="the-power-curve" class="section level4">
+<h4>The Power Curve</h4>
+<p>A plot of the power curve is often an intuitive way to present the
+overall trajectory of the power across the increasing sample sizes.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">plot_sim_model</span>(power_results, <span class="at">type =</span> <span class="st">&quot;power_curve&quot;</span>)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+<p>This plot visually confirms our finding from the table.</p>
+</div>
+<div id="plotting-sample-data" class="section level4">
+<h4>Plotting sample data</h4>
+<p>Another useful aspect to investigate is whether the data our
+simulation produced looks plausible or conforms to our initial
+intention. To investigate this, we can call the
+<code>plot_sim_model</code> function with <code>type = &quot;data&quot;</code> to
+plot sample data from our <code>PowRPriori</code> object.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">plot_sim_model</span>(power_results, <span class="at">type =</span> <span class="st">&quot;data&quot;</span>)</span></code></pre></div>
+<p><img role="img" src="data:image/png;base64,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" /><!-- --></p>
+</div>
+</div>
+</div>
+<div id="other-use-cases" class="section level2">
+<h2>Other Use Cases</h2>
+<p>The <code>PowRPriori</code> workflow is flexible. Here are brief
+examples for other common designs.</p>
+<div id="use-case-1-a-cluster-randomized-trial" class="section level3">
+<h3>Use Case 1: A Cluster-Randomized Trial</h3>
+<p>We could also design our study so that the intervention is applied to
+whole classes, not individual pupils. We can use the hierarchical
+structure in <code>define_design</code> to specify this. In the
+following scenario, the intervention is applied at class level, i.e. if
+a class is in the intervention group, every pupil in the respective
+class is also in the intervention group.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>cluster_design <span class="ot">&lt;-</span> <span class="fu">define_design</span>(</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>  <span class="at">id =</span> <span class="st">&quot;pupil&quot;</span>,</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>  <span class="at">nesting_vars =</span> <span class="fu">list</span>(<span class="at">class =</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">20</span>), <span class="co"># 20 classes</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>  <span class="at">between =</span> <span class="fu">list</span>(</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a>    <span class="at">class =</span> <span class="fu">list</span>(<span class="at">intervention =</span> <span class="fu">c</span>(<span class="st">&quot;yes&quot;</span>, <span class="st">&quot;no&quot;</span>)) <span class="co"># Intervention at class level</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a>  ),</span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a>  <span class="at">within =</span> <span class="fu">list</span>(</span>
+<span id="cb13-8"><a href="#cb13-8" tabindex="-1"></a>    <span class="at">time =</span> <span class="fu">c</span>(<span class="st">&quot;pre&quot;</span>, <span class="st">&quot;post&quot;</span>)</span>
+<span id="cb13-9"><a href="#cb13-9" tabindex="-1"></a>  )</span>
+<span id="cb13-10"><a href="#cb13-10" tabindex="-1"></a>)</span>
+<span id="cb13-11"><a href="#cb13-11" tabindex="-1"></a></span>
+<span id="cb13-12"><a href="#cb13-12" tabindex="-1"></a><span class="co"># The rest of the workflow (specifying effects, running power_sim)</span></span>
+<span id="cb13-13"><a href="#cb13-13" tabindex="-1"></a><span class="co"># would follow the same logic as the main example.</span></span></code></pre></div>
+</div>
+<div id="use-case-2-logistic-regression-glmm" class="section level3">
+<h3>Use Case 2: Logistic Regression (GLMM)</h3>
+<p>If our outcome is binary (e.g., pass/fail), we can specify
+<code>family = &quot;binomial&quot;</code>. We then specify our expected effects
+as <strong>probabilities</strong> (between 0 and 1).</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># We expect the Control group to have a 50% pass rate at both times.</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="co"># The Treatment group starts at 50% but improves to a 75% pass rate.</span></span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a>glmm_probs <span class="ot">&lt;-</span> <span class="fu">expand_grid</span>(</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>  <span class="at">group =</span> <span class="fu">c</span>(<span class="st">&quot;Control&quot;</span>, <span class="st">&quot;Treatment&quot;</span>),</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>  <span class="at">time =</span> <span class="fu">c</span>(<span class="st">&quot;pre&quot;</span>, <span class="st">&quot;post&quot;</span>)</span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>)</span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a>glmm_probs<span class="sc">$</span>pass_prob <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">0.50</span>, <span class="fl">0.50</span>, <span class="fl">0.50</span>, <span class="fl">0.75</span>)</span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="co"># The fixed effects are calculated from these probabilities</span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a>glmm_fixed_effects <span class="ot">&lt;-</span> <span class="fu">fixed_effects_from_average_outcome</span>(</span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a>  <span class="at">formula =</span> passed <span class="sc">~</span> group <span class="sc">*</span> time,</span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a>  <span class="at">outcome =</span> glmm_probs,</span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a>  <span class="at">family =</span> <span class="st">&quot;binomial&quot;</span></span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a>)</span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a></span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a><span class="co"># Note: For binomial models, sd_resid is not specified in random_effects. You could also use generate_random_effects_structure again as before.</span></span>
+<span id="cb14-17"><a href="#cb14-17" tabindex="-1"></a>glmm_random_effects <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb14-18"><a href="#cb14-18" tabindex="-1"></a>  <span class="at">subject =</span> <span class="fu">list</span>(<span class="at">Intercept =</span> <span class="fl">2.0</span>)</span>
+<span id="cb14-19"><a href="#cb14-19" tabindex="-1"></a>)</span>
+<span id="cb14-20"><a href="#cb14-20" tabindex="-1"></a></span>
+<span id="cb14-21"><a href="#cb14-21" tabindex="-1"></a><span class="co"># The power_sim() call would then include `family = &quot;binomial&quot;`.</span></span></code></pre></div>
+</div>
+</div>
+<div id="conclusion" class="section level2">
+<h2>Conclusion</h2>
+<p>This vignette demonstrated the complete workflow for conducting a
+power analysis with <code>PowRPriori</code>. By focusing on a clear
+definition of the design and an intuitive specification of the expected
+effects, the package aims to make power simulation a straightforward and
+robust process.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
