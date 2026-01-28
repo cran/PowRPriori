@@ -32,7 +32,7 @@
 #' @param n_start The starting sample size for the simulation.
 #' @param n_increment The step size for increasing the sample size in each iteration.
 #' @param max_simulation_steps A hard stop for the simulation, limiting the number of
-#'   sample size steps to prevent infinite loops. Defaults to 40 steps.
+#'   sample size steps to prevent infinite loops. Defaults to 100 steps.
 #' @param n_issue_stop_prop The proportion of model issues (e.g., singular fits,
 #'   non-convergence) at which the simulation will be automatically canceled. Defaults to a proportion of 20%.
 #' @param n_is_total Boolean that controls how sample sizes are interpreted. If `TRUE`
@@ -104,16 +104,46 @@ power_sim <- function(
     power_crit = 0.80,
     n_start,
     n_increment,
-    max_simulation_steps = 40,
+    max_simulation_steps = 100,
     n_issue_stop_prop = 0.2,
     n_is_total = TRUE,
     n_sims = 2000,
     alpha = 0.05,
     parallel_plan = "multisession") {
+
 # 1. Error checks
   formula <- as.formula(formula)
+
   all_needed_vars <- all.vars(formula)[-1]
-  all_defined_vars <- c(design$id, names(design$between), names(design$within))
+  all_defined_vars <- list()
+  all_defined_vars[[design$id]] <- NA
+
+  if(!is.null(design$nesting_vars)) {
+    all_defined_vars <- c(all_defined_vars, design$nesting_vars)
+  }
+
+  if(!is.null(design$within)) {
+    all_defined_vars <- c(all_defined_vars, design$within)
+  }
+
+  if(!is.null(design$between)) {
+    for(name in names(design$between)) {
+      element <- design$between[[name]]
+      is_nested_level <- is.list(element) && !is.null(names(element)) && !all(c("mean", "sd") %in% names(element))
+
+      if(is_nested_level) {
+        all_defined_vars <- c(all_defined_vars, element)
+
+        if(!name %in% names(all_defined_vars)) {
+          all_defined_vars[[name]] <- NA
+        }
+      } else {
+        all_defined_vars[[name]] <- element
+      }
+    }
+  }
+
+  all_defined_vars <- names(all_defined_vars)
 
   if (n_issue_stop_prop < 0 || n_issue_stop_prop > 1) {
     stop("'n_issue_stop_prop' needs to be a proportion, i.e. have a value between 0 and 1.", call. = FALSE)
@@ -258,14 +288,20 @@ power_sim <- function(
   results_list <- list()
   current_n <- n_start
   last_power <- 0
-  sim_step <- 1
+  sim_step <- 0
+  nesting_var <- names(design$nesting_vars)[1]
+  n_nesting_var <- length(design$nesting_vars[[1]])
 
   future::plan(parallel_plan)
   on.exit(future::plan("sequential"), add = TRUE)
 
   # Main loop for simulation and power analysis
-  while (last_power < power_crit && sim_step <= max_simulation_steps) {
-    message(paste("\n--- Starting simulation for", n_var, "=", current_n, "with", n_sims, "simulations ---"))
+  while (last_power < power_crit && sim_step < max_simulation_steps) {
+    if(length(nesting_var) != 0) {
+      message(paste("\n--- Starting simulation for", n_var, "=", current_n, "and", nesting_var, "=", n_nesting_var, "with", n_sims, "simulations ---"))
+    } else {
+      message(paste("\n--- Starting simulation for", n_var, "=", current_n, "with", n_sims, "simulations ---"))
+    }
 
     sim_results <- foreach(sim = 1:n_sims, .combine = "c", .multicombine = TRUE, .options.future = list(seed = TRUE)) %dofuture% {
         sim_data <- .create_design_matrix(design, current_n, n_is_total) %>%
@@ -409,6 +445,7 @@ power_sim <- function(
 
     n_model_issues <- n_singular + n_convergence + n_identifiable
     has_critical_model_issues <- n_model_issues > (n_sims * n_issue_stop_prop)
+    model_issues_percent <- round((n_model_issues / n_sims) * 100)
 
     results_list[[as.character(current_n)]] <- data.frame(
       n = current_n,
@@ -438,14 +475,14 @@ power_sim <- function(
       if (n_convergence > 0) issue_details <- c(issue_details, paste0(" Non-Convergence: ", n_convergence))
       if (n_identifiable > 0) issue_details <- c(issue_details, paste0(" Nearly Unidentifiable Fits: ", n_identifiable))
 
-      message(paste("Warning: Some model fits had issues during simulation:",
-                    paste(issue_details, collapse = ","), ".\nSimulation results might be unreliable if a large proportion of model fits had issues."))
+      message(paste("Warning: Of", n_sims , "models calculated,", model_issues_percent , "% of fits had issues during simulation:",
+                    paste(issue_details, collapse = ","), ".\nSimulation results are probably unreliable if a large proportion of model fits had issues."))
       if (has_critical_model_issues) {
         message(paste0("\n--- Simulation canceled ---\n",
                        "At N = ", current_n, ", ", round(n_model_issues / n_sims * 100), "% of models ",
                        "had fitting issues.\n",
                        "This suggests a potential issue with the model specification or the defined parameters.\n",
-                       "Please check model parameters (e.g. random effects structure, predictor scaling, etc.)."))
+                       "Please check model parameters (e.g. random effects structure, predictor scaling, etc.).\n"))
         break
       }
     }
@@ -459,7 +496,14 @@ power_sim <- function(
   rownames(final_results_df) <- NULL
   names(final_results_df)[1] <- n_var
   if (!has_random_effects) final_results_df <- final_results_df %>% dplyr::select(!c("n_singular", "n_convergence", "n_other_warnings"))
-  if(!has_critical_model_issues) message(paste0("\nPower of at least ", power_crit, " achieved at N = ", final_results_df[[n_var]][nrow(final_results_df)], " (Power: ", round(last_power, 2), ")."))
+
+  if(has_critical_model_issues) {
+    message(paste0("\nSimulation stopped due to the percentage of simulated models showing fitting issues being larger than the specified `n_issue_stop_prop` parameter."))
+  } else if (sim_step == max_simulation_steps) {
+    message(paste0("\nMaximum number of simulation steps reached (", max_simulation_steps, "). Simulation stopped due to risk of infinite loop.\nYour model potentially needs adaptation, or, if you want to continue with the current parameters, try increasing the `n_start` parameter."))
+  } else {
+    message(paste0("\nPower of at least ", power_crit, " achieved at N = ", final_results_df[[n_var]][nrow(final_results_df)], " (Power: ", round(last_power, 2), ")."))
+  }
 
   names(coefficients_df) <- gsub("[()]", "", names(coefficients_df))
   names(fixed_effects) <- gsub("[()]", "", names(fixed_effects))

@@ -15,13 +15,13 @@
 #' or the `design` object.
 #'
 #'
-#' @param x The object to plot.
+#' @param object The object to base the plot on. Can be either a `PowRPriori` object or an `lme4`-style formula
 #' @param ... Additional arguments (not used).
 #' @param type The type of plot to create. For `PowRPriori` objects, can be
-#'   `"power_curve"` or `"data"`.
+#'   `"power_curve"` or `"data"`. For `lme4`-style formulas, only `"data"` is available.
 #' @param design A `PowRPriori_design` object.
 #' @param fixed_effects,random_effects Lists of effect parameters.
-#' @param family The model family (e.g., `"gaussian"`).
+#' @param family The model family. Defaults to `"gaussian"`, other possible values are `"binomial"` or `"poisson"`.
 #' @param n The sample size to simulate.
 #' @param x_var,group_var,color_var,facet_var Strings specifying variables for plot aesthetics.
 #' @param n_data_points The maximum number of trajectories in spaghetti plots.
@@ -76,7 +76,7 @@
 #'   # Plot sample data with automated aesthetics extraction
 #'   plot_sim_model(power_results, type = "data")
 #'}
-plot_sim_model <- function(x, type, design, fixed_effects, random_effects, family,
+plot_sim_model <- function(object, type, design, fixed_effects, random_effects, family,
                            n, x_var, group_var, color_var, facet_var,
                            n_data_points, ...) {
   UseMethod("plot_sim_model")
@@ -86,17 +86,24 @@ plot_sim_model <- function(x, type, design, fixed_effects, random_effects, famil
 #'
 #' @rdname plot_sim_model
 #' @export
-plot_sim_model.formula <- function(x, type = NULL, design, fixed_effects, random_effects, family = "gaussian",
+plot_sim_model.formula <- function(object, type = "data", design, fixed_effects, random_effects, family = "gaussian",
                                    n, x_var = NULL, group_var = NULL,
                                    color_var = NULL, facet_var = NULL,
                                    n_data_points = 10, ...) {
-  sim_data <- .create_design_matrix(design = design, current_n = n) %>%
-    .simulate_outcome(formula = x, fixed_effects = fixed_effects,
-                      sds_random = random_effects)
+  if(type == "data"){
+    sim_data <- .create_design_matrix(design = design, current_n = n) %>%
+      .simulate_outcome(formula = object, fixed_effects = fixed_effects,
+                        sds_random = random_effects)
 
-  .plot_data(data = sim_data, design = design, formula = x, x_var = x_var, family = family,
-                         group_var = group_var, color_var = color_var,
-                         facet_var = facet_var, n_data_points = n_data_points)
+    .plot_data(data = sim_data, design = design, formula = object, x_var = x_var, family = family,
+               group_var = group_var, color_var = color_var,
+               facet_var = facet_var, n_data_points = n_data_points)
+  } else {
+    stop(
+      "When calling `plot_sim_model` with an lme4-style formula supplied to the `object` parameter, `type` must be set to `data`",
+      call. = FALSE
+    )
+  }
 }
 
 
@@ -105,13 +112,13 @@ plot_sim_model.formula <- function(x, type = NULL, design, fixed_effects, random
 #'
 #' @rdname plot_sim_model
 #' @export
-plot_sim_model.PowRPriori <- function(x, type = "power_curve", design = NULL, fixed_effects = NULL,
+plot_sim_model.PowRPriori <- function(object, type = "power_curve", design = NULL, fixed_effects = NULL,
                                       random_effects = NULL, family = NULL, n = NULL,
                                       x_var = NULL, group_var = NULL,
                                       color_var = NULL, facet_var = NULL,
                                       n_data_points = 10, ...) {
   if (type == "power_curve") {
-    power_data <- x$power_table
+    power_data <- object$power_table
     n_var <- names(power_data)[1]
 
     plot_data_long <- power_data %>%
@@ -128,13 +135,13 @@ plot_sim_model.PowRPriori <- function(x, type = "power_curve", design = NULL, fi
       ggplot2::geom_line(linewidth = 1, position=dodge) +
       ggplot2::geom_point(size = 1.5, position=dodge) +
       ggplot2::geom_errorbar(ggplot2::aes(ymin=.data$ci_lower, ymax=.data$ci_upper), width=.4, position=dodge) +
-      ggplot2::geom_hline(yintercept = x$power_crit, linetype = "dashed", color = "red") +
+      ggplot2::geom_hline(yintercept = object$power_crit, linetype = "dashed", color = "red") +
       ggplot2::scale_y_continuous(labels = scales::percent, limits = c(0, 1), breaks = seq(0,1,0.1)) +
       ggplot2::scale_x_continuous(limits = c(min(plot_data_long[[n_var]]) - 1, max(plot_data_long[[n_var]]) + 1)) +
       ggplot2::labs(title = "Power-Curve", y = "Power", x = n_var, color = "Parameter") +
       ggplot2::theme_minimal() + ggplot2::theme(legend.position = "bottom")
   } else if (type == "data") {
-    p <- .plot_data(data = x$sample_data, design = x$design, formula = x$formula, family = x$family,
+    p <- .plot_data(data = object$sample_data, design = object$design, formula = object$formula, family = object$family,
                     x_var = x_var, group_var = group_var, color_var = color_var,
                     facet_var = facet_var, n_data_points = n_data_points)
   } else {
@@ -154,7 +161,7 @@ plot_sim_model.PowRPriori <- function(x, type = "power_curve", design = NULL, fi
 #' @param data The data frame to plot.
 #' @param design The `PowRPriori_design` object.
 #' @param formula An lme4-style formula (e.g. `outcome ~ predictor1 * predictor2 + (1 | subject)`)
-#' @param family The model family (e.g., `"gaussian"`).
+#' @param family The model family. Defaults to `"gaussian"`, other possible values are `"binomial"` or `"poisson"`.
 #' @param x_var,group_var,color_var,facet_var Strings specifying variables for plot aesthetics.
 #' @param n_data_points The maximum number of trajectories in spaghetti plots.
 #'
@@ -229,16 +236,16 @@ plot_sim_model.PowRPriori <- function(x, type = "power_curve", design = NULL, fi
       p <- ggplot2::ggplot(plot_spaghetti_data, ggplot2::aes(x = .data[[x_var]], y = .data[[y_var]]))
       if (!is.null(facet_var)) {
         p <- p + ggplot2::geom_line(ggplot2::aes(group = .data[[group_var]]), alpha = 0.4, color = "grey50") +
-          ggplot2::stat_summary(ggplot2::aes(group = 1), fun = mean, geom = "line", linewidth = 1.2, color = "black") +
           ggplot2::facet_wrap(rlang::syms(facet_var)) +
+          ggplot2::stat_summary(data = data, ggplot2::aes(group = 1), fun = mean, geom = "line", linewidth = 1.2, color = "black") +
           ggplot2::theme(legend.position = "none")
       } else if (!is.null(color_var)) {
         p <- p + ggplot2::geom_line(ggplot2::aes(group = .data[[group_var]], color = .data[[color_var]]), alpha = 0.6) +
-          ggplot2::stat_summary(ggplot2::aes(group = .data[[color_var]], color = .data[[color_var]]),
+          ggplot2::stat_summary(data = data, ggplot2::aes(group = .data[[color_var]], color = .data[[color_var]]),
                                 fun = mean, geom = "line", linewidth = 1.2)
       } else {
         p <- p + ggplot2::geom_line(ggplot2::aes(group = .data[[group_var]]), alpha = 0.4) +
-          ggplot2::stat_summary(ggplot2::aes(group = 1), fun = mean, geom = "line", linewidth = 1.2, color = "black")
+          ggplot2::stat_summary(data = data, ggplot2::aes(group = 1), fun = mean, geom = "line", linewidth = 1.2, color = "black")
       }
       p <- p + ggplot2::labs(title = paste("Spaghetti-Plot for Simulated Data"), x = x_var, y = y_var, color = color_var) +
         ggplot2::theme_minimal() + ggplot2::theme(legend.position = "bottom")

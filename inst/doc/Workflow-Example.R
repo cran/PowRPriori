@@ -4,10 +4,12 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 
+## ----eval=FALSE---------------------------------------------------------------
+# install.packages("PowRPriori")
+
 ## ----load-packages, message=FALSE---------------------------------------------
-# First, let's load PowRPriori and other helpful packages
 library(PowRPriori)
-library(tidyr) # For creating the means table
+library(tidyr)
 
 ## ----define-design------------------------------------------------------------
 my_design <- define_design(
@@ -15,6 +17,9 @@ my_design <- define_design(
   between = list(group = c("Control", "Treatment")),
   within = list(time = c("pre", "post"))
 )
+
+## ----define formula-----------------------------------------------------------
+my_formula <- score ~ group * time + (1 | subject)
 
 ## ----specify-means------------------------------------------------------------
 expected_means <- tidyr::expand_grid(
@@ -29,15 +34,16 @@ knitr::kable(expected_means, caption = "Expected Mean Scores for Each Condition"
 
 ## ----get-fixed-effects--------------------------------------------------------
 my_fixed_effects <- fixed_effects_from_average_outcome(
-  formula = score ~ group * time,
+  formula = my_formula,
   outcome = expected_means
 )
 
-#Note the naming of the coefficients is exactly as `lme4` expects them to be. Do not change these names!
+# Note the naming of the coefficients is exactly as `lme4` expects them to be. 
+# Do not change these names!
 print(my_fixed_effects)
 
 ## ----get fixed effects structure----------------------------------------------
-get_fixed_effects_structure(formula = score ~ group * time + (1 | subject), design = my_design)
+get_fixed_effects_structure(formula = my_formula, design = my_design)
 
 
 ## -----------------------------------------------------------------------------
@@ -49,8 +55,8 @@ my_fixed_effects <- list(
 )
 
 ## ----get-random-effects-------------------------------------------------------
-# This helps us get the correct names
-get_random_effects_structure(score ~ group * time + (1|subject), my_design)
+# This helps you get the correct names
+get_random_effects_structure(formula = my_formula, design = my_design)
 
 
 ## ----specify-random-effects---------------------------------------------------
@@ -62,12 +68,10 @@ my_random_effects <- list(
 )
 
 ## ----run-simulation, eval=FALSE-----------------------------------------------
-# # NOTE: This function can take a few minutes to run.
-# # For a real analysis, n_sims should be 1000 or higher (default value is 2000 simulations).
-# # We use a low n_sims here for a quick example.
+# # NOTE: This function can take a few minutes to run, depending on model complexity.
 # 
 # power_results <- power_sim(
-#   formula = score ~ group * time + (1 | subject),
+#   formula = my_formula,
 #   design = my_design,
 #   fixed_effects = my_fixed_effects,
 #   random_effects = my_random_effects,
@@ -83,53 +87,152 @@ my_random_effects <- list(
 ## ----load-results, include=FALSE, eval=TRUE-----------------------------------
 # This hidden code block loads the pre-computed results
 power_results <- readRDS(
-  system.file("extdata", "power_results_vignette.rds", package = "PowRPriori")
+  system.file("extdata", "power_results_workflow.rds", package = "PowRPriori")
 )
 
 ## ----summary------------------------------------------------------------------
 summary(power_results)
 
-## ----plot-power-curve, fig.width=6, fig.height=4------------------------------
+## ----plot-power-curve, fig.width=6, fig.height=4, fig.dpi=600, out.width="600px", out.height="400px"----
 plot_sim_model(power_results, type = "power_curve")
 
-## ----fig.width=6, fig.height=4------------------------------------------------
+## ----fig.width=6, fig.height=4, fig.dpi=600, out.width="600px", out.height="400px"----
 plot_sim_model(power_results, type = "data")
+
+## ----prepare plot data by lme formula-----------------------------------------
+plot_design <- define_design(id = "subject", 
+                             between = list(group = c("Control", "Intervention")),
+                             within = list(measurement = c("Pre", "Post")))
+plot_formula <- y ~ group*measurement + (1|subject)
+
+get_fixed_effects_structure(plot_formula, plot_design)
+
+plot_fixed_effects <- list(
+  `(Intercept)` = 50,
+  groupIntervention  = 0,
+  measurementPost = 2,
+  `groupIntervention:measurementPost` = 8
+)
+
+get_random_effects_structure(plot_formula, plot_design)
+
+plot_random_effects <- list(
+  subject = list(
+    `(Intercept)` = 8
+  ),
+  sd_resid = 12
+)
+# For this simulation, you might decide that you want to see what the 
+# data looks like for 30 Participants
+n_Participants = 30
+
+## ----plot data by lme, fig.width=6, fig.height=4, fig.dpi=600, out.width="600px", out.height="400px"----
+plot_sim_model(plot_formula, 
+               type="data", 
+               design = plot_design, 
+               fixed_effects = plot_fixed_effects, 
+               random_effects = plot_random_effects, 
+               n = n_Participants)
 
 ## ----cluster-design 1---------------------------------------------------------
 cluster_design <- define_design(
   id = "pupil",
   nesting_vars = list(class = 1:20), # 20 classes
   between = list(
-    class = list(intervention = c("yes", "no")) # Intervention at class level
+    # Intervention at class level, with "pupil" nested in classes
+    class = list(intervention = c("yes", "no")) 
   ),
   within = list(
     time = c("pre", "post")
   )
 )
 
-# The rest of the workflow (specifying effects, running power_sim)
-# would follow the same logic as the main example.
+## ----crossed design-----------------------------------------------------------
+item_design <- define_design(
+  # You sample subjects
+  id = "subject",
+  between = list(
+    condition = c("A", "B")
+  ),
+  within = list(
+    # Each subject sees 20 items
+    item = paste0("item_", 1:20)  
+  )
+)
+
+## ----crossed design formula---------------------------------------------------
+crossed.formula <- response ~ condition + (1 | subject) + (1 | item)
 
 ## ----glmm-example-------------------------------------------------------------
-# We expect the Control group to have a 50% pass rate at both times.
-# The Treatment group starts at 50% but improves to a 75% pass rate.
+glmm_design <- define_design(id = "subject",
+                             between = list(group = c("Control", "Treatment")),
+                             within = list(time = c("pre", "post", "follow-up")))
+
+glmm_formula <- passed ~ group * time + (1|subject)
+
 glmm_probs <- expand_grid(
   group = c("Control", "Treatment"),
-  time = c("pre", "post")
+  time = c("pre", "post", "follow-up")
 )
-glmm_probs$pass_prob <- c(0.50, 0.50, 0.50, 0.75)
+glmm_probs$pass_prob <- c(0.50, 0.50, 0.50, 0.50, 0.75, 0.80)
 
 # The fixed effects are calculated from these probabilities
 glmm_fixed_effects <- fixed_effects_from_average_outcome(
-  formula = passed ~ group * time,
+  formula = glmm_formula,
   outcome = glmm_probs,
   family = "binomial"
 )
 
-# Note: For binomial models, sd_resid is not specified in random_effects. You could also use generate_random_effects_structure again as before.
+#Get random effects
+get_random_effects_structure(formula = glmm_formula, design = glmm_design, family = "binomial")
+
+# Note: For binomial (and poisson) models, sd_resid is not specified in random_effects. 
+#       You can also use generate_random_effects_structure as detailed before.
 glmm_random_effects <- list(
-  subject = list(Intercept = 2.0)
+  subject = list(
+    `(Intercept)` = 2
+  )
 )
 
-# The power_sim() call would then include `family = "binomial"`.
+# The power_sim() call would then include `family = "binomial"` (or `family = "poisson"` 
+# if you simulated count data), everything else being the same
+# as in the workflow example above.
+
+## ----ICC example, eval=FALSE--------------------------------------------------
+# my_icc_design <- define_design(
+#   id = "subject",
+#   between = list(group = c("Control", "Treatment")),
+#   within = list(time = c("pre", "post"))
+# )
+# 
+# #Note: Only random intercept models work with the ICC specification
+# my_icc_formula <- score ~ group * time + (1 | subject)
+# 
+# get_fixed_effects_structure(formula = my_icc_formula, design = my_icc_design)
+# 
+# my_icc_fixed_effects <- list(
+#    `(Intercept)` = 50,
+#    groupTreatment = 0,
+#    timepost = 2,
+#    `groupTreatment:timepost` = 8
+# )
+# 
+# #The values are defined so they mirror the random effects structure from the detailed example above
+# iccs <- list(`subject` = 0.4)
+# overall_var <- 20
+# 
+# power_results <- power_sim(
+#   formula = score ~ group * time + (1 | subject),
+#   design = my_design,
+#   fixed_effects = my_fixed_effects,
+#   icc_specs = iccs,
+#   overall_variance = overall_var,
+#   test_parameter = "groupTreatment:timepost",
+#   n_start = 30,
+#   n_increment = 10,
+#   n_sims = 200,
+#   power_crit = 0.80,
+#   alpha = 0.05,
+#   parallel_plan = "sequential"
+# )
 

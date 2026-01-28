@@ -7,7 +7,7 @@
 \title{Visualize Simulation Data or Power Simulation Results}
 \usage{
 plot_sim_model(
-  x,
+  object,
   type,
   design,
   fixed_effects,
@@ -23,8 +23,8 @@ plot_sim_model(
 )
 
 \method{plot_sim_model}{formula}(
-  x,
-  type = NULL,
+  object,
+  type = "data",
   design,
   fixed_effects,
   random_effects,
@@ -39,7 +39,7 @@ plot_sim_model(
 )
 
 \method{plot_sim_model}{PowRPriori}(
-  x,
+  object,
   type = "power_curve",
   design = NULL,
   fixed_effects = NULL,
@@ -55,7 +55,7 @@ plot_sim_model(
 )
 }
 \arguments{
-\item{x}{The object to plot.}
+\item{object}{The object to base the plot on. Can be either a \code{PowRPriori} object or an \code{lme4}-style formula}
 
 \item{type}{The type of plot to create: \code{"power_curve"} (default) or \code{"data"}
 (to visualize the sample data from the simulation).}
@@ -64,7 +64,7 @@ plot_sim_model(
 
 \item{fixed_effects, random_effects}{Lists of effect parameters.}
 
-\item{family}{The model family (e.g., \code{"gaussian"}).}
+\item{family}{The model family. Defaults to \code{"gaussian"}, other possible values are \code{"binomial"} or \code{"poisson"}.}
 
 \item{n}{The total sample size to simulate for the plot.}
 
