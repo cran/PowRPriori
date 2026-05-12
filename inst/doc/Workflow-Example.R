@@ -13,7 +13,7 @@ library(tidyr)
 
 ## ----define-design------------------------------------------------------------
 my_design <- define_design(
-  id = "subject",
+  sample_size = list(subject = 30), 
   between = list(group = c("Control", "Treatment")),
   within = list(time = c("pre", "post"))
 )
@@ -76,7 +76,7 @@ my_random_effects <- list(
 #   fixed_effects = my_fixed_effects,
 #   random_effects = my_random_effects,
 #   test_parameter = "groupTreatment:timepost",
-#   n_start = 30,
+#   along = "subject",
 #   n_increment = 10,
 #   n_sims = 200, # Use >= 1000 for real analysis
 #   power_crit = 0.80,
@@ -100,9 +100,12 @@ plot_sim_model(power_results, type = "power_curve")
 plot_sim_model(power_results, type = "data")
 
 ## ----prepare plot data by lme formula-----------------------------------------
-plot_design <- define_design(id = "subject", 
-                             between = list(group = c("Control", "Intervention")),
-                             within = list(measurement = c("Pre", "Post")))
+plot_design <- define_design(
+  sample_size = list(subject = 30), 
+  between = list(group = c("Control", "Intervention")),
+  within = list(measurement = c("Pre", "Post"))
+)
+
 plot_formula <- y ~ group*measurement + (1|subject)
 
 get_fixed_effects_structure(plot_formula, plot_design)
@@ -122,41 +125,33 @@ plot_random_effects <- list(
   ),
   sd_resid = 12
 )
-# For this simulation, you might decide that you want to see what the 
-# data looks like for 30 Participants
-n_Participants = 30
 
 ## ----plot data by lme, fig.width=6, fig.height=4, fig.dpi=600, out.width="600px", out.height="400px"----
 plot_sim_model(plot_formula, 
                type="data", 
                design = plot_design, 
                fixed_effects = plot_fixed_effects, 
-               random_effects = plot_random_effects, 
-               n = n_Participants)
+               random_effects = plot_random_effects)
 
 ## ----cluster-design 1---------------------------------------------------------
 cluster_design <- define_design(
-  id = "pupil",
-  nesting_vars = list(class = 1:20), # 20 classes
+  sample_size = list(class = 20, pupil = 20),
   between = list(
-    # Intervention at class level, with "pupil" nested in classes
+    # Intervention is assigned at the class level
     class = list(intervention = c("yes", "no")) 
   ),
   within = list(
-    time = c("pre", "post")
+    pupil = list(time = c("pre", "post"))
   )
 )
 
 ## ----crossed design-----------------------------------------------------------
 item_design <- define_design(
-  # You sample subjects
-  id = "subject",
+  sample_size = list(subject = 50, item = 20),
   between = list(
-    condition = c("A", "B")
-  ),
-  within = list(
-    # Each subject sees 20 items
-    item = paste0("item_", 1:20)  
+    subject = list(
+      condition = c("A", "B")
+    )
   )
 )
 
@@ -164,9 +159,11 @@ item_design <- define_design(
 crossed.formula <- response ~ condition + (1 | subject) + (1 | item)
 
 ## ----glmm-example-------------------------------------------------------------
-glmm_design <- define_design(id = "subject",
-                             between = list(group = c("Control", "Treatment")),
-                             within = list(time = c("pre", "post", "follow-up")))
+glmm_design <- define_design(
+  sample_size = list(subject = 30),
+  between = list(group = c("Control", "Treatment")),
+  within = list(time = c("pre", "post", "follow-up"))
+)
 
 glmm_formula <- passed ~ group * time + (1|subject)
 
@@ -200,12 +197,12 @@ glmm_random_effects <- list(
 
 ## ----ICC example, eval=FALSE--------------------------------------------------
 # my_icc_design <- define_design(
-#   id = "subject",
+#   sample_size = list(subject = 30),
 #   between = list(group = c("Control", "Treatment")),
 #   within = list(time = c("pre", "post"))
 # )
 # 
-# #Note: Only random intercept models work with the ICC specification
+# #Only random intercept models work with the ICC specification
 # my_icc_formula <- score ~ group * time + (1 | subject)
 # 
 # get_fixed_effects_structure(formula = my_icc_formula, design = my_icc_design)
@@ -217,7 +214,7 @@ glmm_random_effects <- list(
 #    `groupTreatment:timepost` = 8
 # )
 # 
-# #The values are defined so they mirror the random effects structure from the detailed example above
+# #The values are defined so they mirror the random effects structure from the detailed example above. ICCs need to always be specified as lists as well.
 # iccs <- list(`subject` = 0.4)
 # overall_var <- 20
 # 
@@ -228,7 +225,6 @@ glmm_random_effects <- list(
 #   icc_specs = iccs,
 #   overall_variance = overall_var,
 #   test_parameter = "groupTreatment:timepost",
-#   n_start = 30,
 #   n_increment = 10,
 #   n_sims = 200,
 #   power_crit = 0.80,
