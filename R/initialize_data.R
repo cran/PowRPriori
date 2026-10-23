@@ -24,7 +24,7 @@
   nesting_map <- list()
 
   if (!is.null(formula)) {
-    bars <- lme4::findbars(as.formula(formula))
+    bars <- reformulas::findbars(as.formula(formula))
     valid_levels <- names(design$sample_size)
 
     all_groupings <- list()
@@ -141,13 +141,14 @@
 #'
 #' @return The input `design_df` with an added column for the outcome variable.
 #'
-#' @importFrom lme4 nobars findbars glFormula
+#' @importFrom lme4 glFormula
+#' @importFrom reformulas nobars findbars
 #' @importFrom MASS mvrnorm
 #' @importFrom stats model.matrix rnorm rbinom rpois
 .simulate_outcome <- function(design_df, formula, fixed_effects, sds_random, family = "gaussian") {
   formula <- as.formula(formula)
 
-  fe_formula <- lme4::nobars(formula)
+  fe_formula <- reformulas::nobars(formula)
 
   design_df[[all.vars(fe_formula)[1]]] <- 0
   mm <- model.matrix(fe_formula, data = design_df)
@@ -169,8 +170,8 @@
   fixed_pred <- mm %*% fe_vector
 
   random_pred <- 0
-  if(length(lme4::findbars(formula)) > 0) {
-    random_effect_terms <- lme4::findbars(formula)
+  if(length(reformulas::findbars(formula)) > 0) {
+    random_effect_terms <- reformulas::findbars(formula)
 
     if (!is.null(random_effect_terms)) {
       for (term in random_effect_terms) {

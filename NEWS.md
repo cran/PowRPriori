@@ -1,3 +1,7 @@
+# PowRPriori 0.2.1
+
+This is a small patch that fixes the warning stemming from the `findbars`, `nobars`, etc. functions having been moved from the `lme4` to the `reformulas` package.
+
 # PowRPriori 0.2.0
 
 This is a large update, including complete refactoring of underlying mechanisms related to how the package handles experimental designs and the addition of mean centering as well as p-value adjustment. 

@@ -77,6 +77,7 @@ my_random_effects <- list(
 #   random_effects = my_random_effects,
 #   test_parameter = "groupTreatment:timepost",
 #   along = "subject",
+#   center = TRUE,
 #   n_increment = 10,
 #   n_sims = 200, # Use >= 1000 for real analysis
 #   power_crit = 0.80,

@@ -34,7 +34,7 @@ NULL
 #' @return Dataframe with centered predictors
 
 .center_predictors <- function(df, formula, subject_id_col = ".PowR_id") {
-  predictors <- all.vars(lme4::nobars(formula))[-1]
+  predictors <- all.vars(reformulas::nobars(formula))[-1]
   has_subject <- subject_id_col %in% names(df)
 
   for (v in predictors) {
@@ -259,7 +259,7 @@ get_fixed_effects_structure <- function(formula, design) {
     return(x)
   })
   dummy_data <- as.data.frame(grid_vars)
-  fe_formula <- lme4::nobars(formula)
+  fe_formula <- reformulas::nobars(formula)
   outcome_name <- all.vars(fe_formula)[1]
   if (!outcome_name %in% names(dummy_data)) {
     dummy_data[[outcome_name]] <- 0
@@ -394,7 +394,7 @@ get_random_effects_structure <- function(formula, design, family = "gaussian") {
   dummy_data <- rbind(dummy_data, dummy_data2)
   # --------------------------------------
 
-  re_terms <- lme4::findbars(formula)
+  re_terms <- reformulas::findbars(formula)
 
   if (length(re_terms) > 0) {
     re_strings <- sapply(re_terms, function(x) paste0("(", paste(deparse(x), collapse = " "), ")"))
@@ -546,7 +546,7 @@ fixed_effects_from_average_outcome <- function(formula, outcome, center = TRUE, 
   on.exit(options(old_opts), add = TRUE)
 
   formula <- as.formula(formula)
-  fe_formula <- lme4::nobars(formula)
+  fe_formula <- reformulas::nobars(formula)
 
   predictor_vars <- all.vars(fe_formula)[-1]
 
@@ -654,7 +654,7 @@ summary.PowRPriori <- function(object, ...) {
   )
   print(round(recovery_df_fe, 3))
 
-  has_random_effects <- length(lme4::findbars(object$formula)) > 0
+  has_random_effects <- length(reformulas::findbars(object$formula)) > 0
   spec <- object$parameters$random_spec
   all_re <- object$all_re_estimates
 
@@ -678,7 +678,10 @@ summary.PowRPriori <- function(object, ...) {
         Bias = estimated_re[names(true_sds)] - unlist(true_sds),
         row.names = NULL
       )
-      print(round(recovery_df_sd, 3))
+
+      numeric_cols_sd <- sapply(recovery_df_sd, is.numeric)
+      recovery_df_sd[numeric_cols_sd] <- round(recovery_df_sd[numeric_cols_sd], 3)
+      print(recovery_df_sd)
     } else {
       true_re_list <- list()
       re_groups <- spec[!names(spec) == "sd_resid"]

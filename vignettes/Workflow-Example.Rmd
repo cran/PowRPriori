@@ -250,6 +250,7 @@ power_results <- power_sim(
   random_effects = my_random_effects,
   test_parameter = "groupTreatment:timepost",
   along = "subject",
+  center = TRUE,
   n_increment = 10,
   n_sims = 200, # Use >= 1000 for real analysis
   power_crit = 0.80,
@@ -281,7 +282,7 @@ Small biases indicate that the simulation could accurately simulate the data wit
 summary(power_results)
 ```
 
-From this table, you can see that you'll need approximately **N=140 subjects** (in the `subject` column in the first table after the Formula) to reach your desired 80% power at an alpha level of 5%. Also, you can see that your model had some singular fits, especially at smaller sample sizes. Sometimes, singular fits simply happen by chance. If they happen frequently, it can be an indicator that your model specifications might be problematic. Right now, I won't delve further into this topic, but investigating your random effects parameters is useful in such cases. 
+From this table, you can see that you'll need approximately **N=150 subjects** (in the `subject` column in the first table after the Formula) to reach your desired 80% power at an alpha level of 5%. Also, you can see that your model had some singular fits, especially at smaller sample sizes. Sometimes, singular fits simply happen by chance. If they happen frequently, it can be an indicator that your model specifications might be problematic. Right now, I won't delve further into this topic, but investigating your random effects parameters is useful in such cases. 
 
 #### The Power Curve
 

@@ -120,7 +120,7 @@ plot_sim_model.formula <- function(object, type = "data", design, fixed_effects,
       if (!is.null(is_centered_attr)) {
         center <- is_centered_attr
       } else{
-        hasInteraction <- any(grepl(":", attr(stats::terms(nobars(object)), "term.labels")))
+        hasInteraction <- any(grepl(":", attr(stats::terms(reformulas::nobars(object)), "term.labels")))
 
         if(hasInteraction){
           stop("Your model contains interaction effects and you manually specified your fixed effects without specifying if the predictors should be centered. Since centering changes the interpretation and power of main effects, PowRPriori cannot safely guess your intent. Please explicitly add 'center = TRUE' (recommended if your weights are effect-coded) or 'center = FALSE' (if your weights use dummy-coding) to your power_sim() call.", call. = FALSE)
